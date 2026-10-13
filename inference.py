@@ -1,3 +1,12 @@
+"""Predict utterance-level emotion from text and audio.
+
+Load the saved TF-IDF vectorizer, audio scaler, and multimodal classifier.
+Provide predict_emotion(text, audio_path) to extract and combine text/audio
+features, then return an emotion prediction and a template-based response.
+
+When run directly, demonstrate prediction on one dev utterance and print
+its ground-truth label for comparison.
+"""
 from audio_features import extract_audio_features
 import joblib
 import pandas as pd
