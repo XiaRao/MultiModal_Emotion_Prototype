@@ -172,6 +172,39 @@ python 14_evaluate_test.py
 
 This aligns test text with cached audio features, applies the saved preprocessing with `transform()`, and evaluates the saved classifier with `predict()`. It does not refit preprocessing or train the classifier on test.
 
+## Follow-up Experiments and Reflection
+Two follow-up experiments investigated whether coarse audio timing or a different linear classifier would improve the model performance. Both used the same utterances and the same TFIDF settings.
+
+| Experiment | Audio features | Classifier | Dev accuracy | Dev Macro-F1 |
+| --- | ---: | --- | ---: | ---: |
+| Original baseline | 26 | Logistic Regression, balanced | 41.43% | 34.73% |
+| Second experiment: three-segment MFCC | 78 | Logistic Regression, balanced | 40.70% | 33.94% |
+| Third experiment: LinearSVC | 26 | Balanced, C=1.0 | 43.32% | 32.51% |
+| Third experiment: LinearSVC | 26 | Balanced, C=0.1 | **45.49%** | **35.35%** |
+| Third experiment: LinearSVC | 26 | Balanced, C=10.0 | 40.61% | 29.78% |
+
+### Second Experiment
+This experiment divided the MFCC frame sequence into 3 segments, each part contributed the means and standard deviations of 13 coefficients. so it's 78 features for audio part. 
+- Dev accuracy decreased by 0.72 percentage and macro-f1 by 0.79 percentage relative to the original model performance.
+- The implementation does not establish that temporal information is helpful.
+- Possible Explanations:
+  - **Less stable summaries:** each segment contains fewer frames than the full utterance. Short clips may therefore produce noisier means and standard deviations.
+  - **Limited new information:** segments still compress the MFCC heavily and do not explicitly measure pitch, energy, rhythm, etc. that might contribute to emotion predictions.
+### Third Experiment
+This experiment returned to the original 26-dimensional audio features, but changed the classification model from LinearRegression model to LinearSVC model. all 3 models used the class_weight = "balanced". However, the model had shown overfitting characteristics when checking the summarized data as follows. At C = 0.1, it improved dev accuracy by 4.06 percentage and macro-f1 by 0.62 percentage. Therefore, this experiment produced a modest improvement than the original one.
+
+| C | Train accuracy | Train Macro-F1 | Dev accuracy | Dev Macro-F1 |
+| ---: | ---: | ---: | ---: | ---: |
+| 0.1 | 68.96% | 64.63% | **45.49%** | **35.35%** |
+| 1.0 | 83.33% | 82.18% | 43.32% | 32.51% |
+| 10.0 | 90.10% | 89.51% | 40.61% | 29.78% |
+
+- Larger C -> Weaker regularization. The training performance rose as C increased, while the dev performance fell. This pattern is consistent with overfitting, particularly at C = 1.0 and c = 10.0.
+- Possible reasons for the improvement to be limited:
+  - Both the original classifier and the third classifier used the same TF-IDF and MFCC summaries. Therefore this does not restore the lost information during the data processing procedure. 
+  - Rare categories have limited training evidence and small dev supports: disgust has 22 dev samples and fear has 40. Class weighting changes the training objective but does not create new examples.
+
+
 ## Hardware, Resources, and Parameter Accounting.
 
 | Item | Report|
@@ -196,3 +229,8 @@ This aligns test text with cached audio features, applies the saved preprocessin
 ## Dataset
 
 This project uses the **Multimodal EmotionLines Dataset (MELD)**. Media and annotations are obtained separately and are not redistributed in this repository.
+
+## More Discussions - Current Stopping point
+The original Logistic Regression system remains the documented end-to-end baseline. Its test results, latency measurements, memory measurements, and parameter counts apply to that model, not to the experimental SVC model.
+The selected SVC candidate was saved separately as data/models/multimodal_model_svc.joblib, with results in data/results/linear_svc_comparison.csv. Deployment of this candidate and measurement of its test performance and runtime are left for a future iteration.
+These experiments suggest that additional feature dimensions and a classifier change do not automatically produce large improvements. Stronger regularization helped the tested SVC models, while three-segment pooling did not improve the tested Logistic Regression model. Further work could examine richer speech features, contextual text representations, or dialogue history, but these were left outside the current prototype.
