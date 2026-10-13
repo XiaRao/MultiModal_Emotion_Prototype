@@ -41,3 +41,10 @@ print("Test Macro-F1:", f1_score(y_test, test_pred, average="macro"))
 print(classification_report(
     y_test, test_pred, digits=3, zero_division=0
 ))
+print("Classifier parameters:",
+      model.coef_.size + model.intercept_.size)
+
+print("IDF values:", vectorizer.idf_.size)
+
+print("Scaler stored values:",
+      scaler.mean_.size + scaler.var_.size + scaler.scale_.size)

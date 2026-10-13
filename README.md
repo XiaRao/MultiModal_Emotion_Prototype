@@ -1,6 +1,18 @@
-# MELD Multimodal Emotion Recognition
+## MELD Multimodal Emotion Recognition Prototype Summary
 
-An utterance-level text-and-audio emotion recognition prototype using MELD. It combines TF-IDF text features and MFCC audio summaries with Logistic Regression, returns structured emotion predictions and template-based replies, and demonstrates sequential processing of recorded clips.
+- The chosen track is **Text and Audio**.
+- **Logistic Regression** is used for learning and makign predictions.
+- **real time** is defined as the model returning the prediction of the emotion and the intended time for short response in 500ms after both inputs are available.
+  - Its text and corresponding mono, 16kHz WAV is already available and the model bundle is loaded before interaction begins.
+- A reasonable minimum workflow for this prototype is: Receive the first text + audio message (wav) → Use TF-IDF and MFCC to process the text and audio accordingly → standardize → feature fusing → use the logistic regression model to predict → Return emotion + short reply → Receive the next input → Return the result again.
+- 
+- **limitations:**
+  - The short response is pre-structured depending on the emotion, so the response might not be grounded enough that aligns with the actual context provided by the user.
+  -  different input under the same emotion category always receive the same response. The model does not adjust its response with respect to the context.
+  - The demo processes completed, prerecorded utterances sequentially; live microphone streaming has not been implemented.
+  - MFCC means and standard deviations discard detailed temporal order. This means the temporal order of words don't contribute to the prediction process of the model, which might be a significant factor that helps making decision about the emotion. Considering other approaches to deal with MFCC might increase the model prediction accuracy.
+  - A wrong emotion prediction can select an inappropriate reply. The first dev example predicts surprise for an utterance annotated as sadness. The accuracy is low.
+  - Predicting the speaker's emotion from solely the text and audio of speech might lack sufficient evidence. Since spoken words cannot comprehensively represent the speaker's inner state. To make better predictions, building dialogue history and user profile might help.
 
 ## Approach
 
@@ -8,7 +20,7 @@ An utterance-level text-and-audio emotion recognition prototype using MELD. It c
 - **Audio:** 13 MFCC means and 13 standard deviations per utterance.
 - **Fusion:** standardize audio features and concatenate them with TF-IDF features. The fitted fusion model uses 5,026 input features.
 - **Classifier:** Logistic Regression with `max_iter=1000` and `class_weight="balanced"`.
-- **Replies:** hand-written templates selected by the predicted emotion.
+- **Replies:** handwritten templates selected by the predicted emotion.
 
 Media files are matched to annotations using `Dialogue_ID` and `Utterance_ID`. Cached audio features retain their original CSV row indices so text, audio, and labels remain aligned after skipped samples.
 
@@ -47,7 +59,7 @@ The saved fusion model was evaluated with its selected settings and fitted prepr
 | sadness | 0.259 | 0.375 | 0.306 | 208 |
 | surprise | 0.412 | 0.505 | 0.454 | 281 |
 
-For context, always predicting neutral would achieve 48.12% test accuracy and approximately 9.28% Macro-F1. The fusion model has lower accuracy than that strategy but recognizes a broader set of emotions. Fear and disgust remain weak categories.
+For context, always predicting neutral would achieve 48.12% test accuracy and approximately 9.28% Macro-F1. The fusion model has lower accuracy than that strategy but recognizes a broader set of emotions. Fear and disgust remain weak categories. 
 
 The reported improvement over Text-only is a **dev finding**; only the fusion model has been evaluated on test in this workflow.
 
@@ -66,7 +78,7 @@ The train MP4 `dia125_utt3.mp4` failed FFmpeg conversion. The dev WAV `dia110_ut
 The local workflow was run on macOS with Python 3.14. Install the Python packages in your project environment:
 
 ```bash
-python -m pip install numpy pandas scipy librosa scikit-learn joblib
+python -m pip install -r requirements.txt
 ```
 
 Install FFmpeg separately and verify that it is available:
@@ -160,15 +172,26 @@ python 14_evaluate_test.py
 
 This aligns test text with cached audio features, applies the saved preprocessing with `transform()`, and evaluates the saved classifier with `predict()`. It does not refit preprocessing or train the classifier on test.
 
-## Scope and Limitations
+## Hardware, Resources, and Parameter Accounting.
 
-- The demo processes completed, prerecorded utterances sequentially; live microphone streaming has not been implemented.
-- Each prediction uses the current utterance only, without conversational memory.
-- MFCC means and standard deviations discard detailed temporal order. Fusion joins utterance-level features without aligning individual words to audio frames.
-- Speaker identity is annotation metadata, and event timing describes the replay. Neither is inferred by the classifier.
-- Replies are generic emotion-conditioned templates. They do not perform open-ended dialogue generation or extract topic-specific content.
-- A wrong emotion prediction can select an inappropriate reply. The first dev example predicts surprise for an utterance annotated as sadness.
-- Emotion categories are dataset predictions, not direct measurements of a person's internal emotional state.
+| Item | Report|
+| Computer Model and CPU| Macbook Air, Apple M4|
+| RAM | 16GB|
+| Operating System | MacOS|
+| Python | 3.14.2|
+| Inference Device| CPU|
+| Model bundle size | about 459KiB|
+| First Prediction in the reported ten-clip run | 414.36ms|
+| Subsequent nine predictions | mean 6.76ms|
+
+### External Resources
+- FFmpeg: converts MP4 audio to mono, 16kHz WAV.
+- librosa==1.0.0: load audio.
+- NumPy==2.5.3: compute MFCC summary features
+- pandas==3.0.6/SciPy==1.18.1: align annotations and assemble sparse feature matrices
+- scikit-learn==1.9.1: implements TF-IDF, standardization, LogisticRegression, and evaluation metrics.
+- joblib==1.6.0: persists and reloads the model.
+- ChatGPT: assisted with loading data, debugging, and organizing README.md
 
 ## Dataset
 

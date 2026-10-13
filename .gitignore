@@ -7,6 +7,7 @@ venv/
 .env
 .env.*
 !.env.example
+.venv_check/
 
 # Python and editor files
 __pycache__/
