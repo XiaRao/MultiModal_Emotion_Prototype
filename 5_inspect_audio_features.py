@@ -1,4 +1,4 @@
-"""inspect audio features"""
+"""inspect the trian audio features"""
 import pandas as pd
 import numpy as np
 from pathlib import Path

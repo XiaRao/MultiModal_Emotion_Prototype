@@ -1,4 +1,4 @@
-"""prepare audio features"""
+"""prepare the train audio features"""
 import pandas as pd
 from pathlib import Path
 import subprocess
